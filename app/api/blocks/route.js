@@ -3,9 +3,11 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import { getSupabaseClient } from "../../../lib/supabase";
+
 
 export async function GET() {
+    const supabase = getSupabaseClient(); 
   const BLOCKS_URL = process.env.QUAISCAN_BLOCKS_URL;
   const FETCH_TIMEOUT_MS = 10000;
 
