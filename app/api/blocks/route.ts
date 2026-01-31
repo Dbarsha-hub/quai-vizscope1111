@@ -56,13 +56,15 @@ export async function GET() {
 
     // 5️⃣ Upsert mapped blocks into Supabase and return
     const items = Array.isArray(data?.items) ? data.items : [];
-    const blocks = items
-      .map((item) => ({
-        block_number: item.number_full?.[0],
-        gas_used: item.gas_used,
-        miner: item.miner?.hash ?? "N/A",
-      }))
-      .filter((b) => b.block_number !== undefined);
+
+const blocks = items
+  .map((item: any) => ({
+    block_number: item.number_full?.[0],
+    gas_used: item.gas_used,
+    miner: item.miner?.hash ?? "N/A",
+  }))
+  .filter((b: any) => b.block_number !== undefined);
+
 
     if (blocks.length === 0) {
       const { data: cached } = await supabase
