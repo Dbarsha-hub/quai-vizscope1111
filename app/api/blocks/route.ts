@@ -55,7 +55,10 @@ export async function GET() {
     const data = await res.json();
 
     // 5️⃣ Upsert mapped blocks into Supabase and return
-    const items = Array.isArray(data?.items) ? data.items : [];
+    const items: any[] = Array.isArray((data as any)?.items)
+  ? (data as any).items
+  : [];
+
 
 const blocks = items
   .map((item: any) => ({
