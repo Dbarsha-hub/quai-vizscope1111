@@ -1,65 +1,191 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Home() {
+  const [blocks, setBlocks] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/blocks")
+      .then((res) => res.json())
+      .then((data) => setBlocks(data));
+  }, []);
+// Group blocks by block_number
+const groupedBlocks = Object.values(
+  blocks.reduce((acc: any, curr: any) => {
+    if (!acc[curr.block_number]) {
+      acc[curr.block_number] = {
+        block: curr.block_number,
+        totalGas: 0,
+        count: 0,
+      };
+    }
+    acc[curr.block_number].totalGas += Number(curr.gas_used || 0);
+    acc[curr.block_number].count += 1;
+    return acc;
+  }, {})
+);
+
+  // Metrics
+  const totalBlocks = blocks.length;
+  const latestBlock = blocks[0]?.block_number || "N/A";
+  const avgGas =
+    totalBlocks > 0
+      ? Math.round(
+          blocks.reduce(
+            (sum, b) => sum + Number(b.gas_used || 0),
+            0
+          ) / totalBlocks
+        )
+      : 0;
+
+  // Prepare data for chart
+  const chartData = blocks
+    .slice(0, 20)
+    .reverse()
+    .map((b) => ({
+      block: b.block_number.slice(0, 6),
+      gas: Number(b.gas_used),
+    }));
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main
+      style={{
+        padding: "40px",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        fontFamily: "system-ui",
+      }}
+    >
+      {/* TITLE */}
+      <h1 style={{ fontSize: "32px" }}>QUAI Blocks Dashboard</h1>
+      <p style={{ color: "#aaa", marginBottom: "30px" }}>
+        Data from QUAI Scan API
+      </p>
+
+      {/* METRIC CARDS */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "20px",
+          marginBottom: "40px",
+        }}
+      >
+        <div className="card">
+          <p>Total Blocks</p>
+          <h2>{totalBlocks}</h2>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="card">
+          <p>Latest Block</p>
+          <h2>{latestBlock}</h2>
         </div>
-      </main>
-    </div>
+
+        <div className="card">
+          <p>Average Gas Used</p>
+          <h2>{avgGas}</h2>
+        </div>
+      </div>
+      <h2 style={{ marginBottom: "10px", opacity: 0.9 }}>
+  Network Activity
+</h2>
+
+
+      {/* GRAPH */}
+      <div className="card" style={{ height: "300px" }}>
+        <h3 style={{ marginBottom: "15px" }}>
+          Gas Used Trend (Recent Blocks)
+        </h3>
+
+        <ResponsiveContainer width="100%" height="100%">
+  <LineChart data={chartData}>
+    <defs>
+      <linearGradient id="pinkGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#ff4ecd" />
+        <stop offset="100%" stopColor="#7f00ff" />
+      </linearGradient>
+    </defs>
+
+    <XAxis dataKey="block" />
+    <YAxis />
+    <Tooltip />
+
+    <Line
+      type="monotone"
+      dataKey="gas"
+      stroke="url(#pinkGradient)"
+      strokeWidth={3}
+      dot={{ r: 4 }}
+      activeDot={{ r: 7 }}
+    />
+  </LineChart>
+</ResponsiveContainer>
+
+      </div>
+      <h2 style={{ margin: "40px 0 10px", opacity: 0.9 }}>
+  Recent Blocks
+</h2>
+
+
+      {/* TABLE */}
+      <table
+        style={{
+          width: "100%",
+          marginTop: "40px",
+          borderCollapse: "collapse",
+          opacity: 0.85,
+        }}
+      >
+       <thead>
+  <tr>
+    <th align="left">Block</th>
+    <th align="left">Total Gas Used</th>
+    <th align="left">Tx Count</th>
+  </tr>
+</thead>
+
+
+        <tbody>
+  {groupedBlocks.slice(0, 10).map((b: any, i: number) => (
+    <tr key={i} style={{ borderBottom: "1px solid #222" }}>
+      <td>{b.block}</td>
+
+      <td>
+        {b.totalGas.toLocaleString()}
+        <div
+          style={{
+            height: "6px",
+            background: "#222",
+            borderRadius: "4px",
+            marginTop: "6px",
+          }}
+        >
+          <div
+            style={{
+              width: `${Math.min(b.totalGas / 30000, 100)}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #ff4ecd, #7f00ff)",
+              borderRadius: "4px",
+            }}
+          />
+        </div>
+      </td>
+
+      <td>{b.count}</td>
+    </tr>
+  ))}
+</tbody>
+
+      </table>
+    </main>
   );
 }
